@@ -42,6 +42,7 @@
     .button.primary { border-color: var(--accent); background: var(--accent); color: white; }
     .button.primary:hover { background: #1d5943; color: white; }
     .button.ghost { margin-left: auto; }
+    .toolbar-actions { display: flex; flex: 0 0 auto; gap: 12px; margin-left: auto; }
     .workspace { margin-top: 20px; padding: clamp(16px, 3vw, 32px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
     .workspace-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
     .workspace-title { margin: 0; font-size: 1rem; letter-spacing: -.01em; }
@@ -94,9 +95,7 @@
       <div class="field"><label for="rows">Rows</label><select id="rows"><option value="1">1 row</option><option value="2" selected>2 rows</option><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option><option value="6">6 rows</option><option value="7">7 rows</option><option value="8">8 rows</option></select></div>
       <div class="field range-field"><label for="cornerWidth">Corner width</label><div class="range-control"><input id="cornerWidth" type="range" min="160" max="420" step="4" value="232"><output id="cornerWidthValue" for="cornerWidth">232px</output></div></div>
       <div class="field range-field"><label for="cornerHeight">Corner height</label><div class="range-control"><input id="cornerHeight" type="range" min="120" max="320" step="4" value="232"><output id="cornerHeightValue" for="cornerHeight">232px</output></div></div>
-      <br>
-      <button id="reset" class="button ghost" type="button">Reset</button>
-      <button id="download" class="button primary" type="button">↓&nbsp; Download as image</button>
+      <div class="toolbar-actions"><button id="reset" class="button ghost" type="button">Reset</button><button id="download" class="button primary" type="button">↓&nbsp; Download as image</button></div>
     </section>
 
     <section class="workspace">
