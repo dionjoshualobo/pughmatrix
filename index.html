@@ -92,7 +92,8 @@
       <div class="field"><label for="matrixName">Matrix name</label><input id="matrixName" class="text-input" type="text" placeholder="Optional name" maxlength="80"></div>
       <div class="field"><label for="columns">Columns</label><select id="columns"><option value="1">1 column</option><option value="2" selected>2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option></select></div>
       <div class="field"><label for="rows">Rows</label><select id="rows"><option value="1">1 row</option><option value="2" selected>2 rows</option><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option><option value="6">6 rows</option><option value="7">7 rows</option><option value="8">8 rows</option></select></div>
-      <div class="field range-field"><label for="cornerSize">Corner size</label><div class="range-control"><input id="cornerSize" type="range" min="160" max="360" step="4" value="232"><output id="cornerSizeValue" for="cornerSize">232px</output></div></div>
+      <div class="field range-field"><label for="cornerWidth">Corner width</label><div class="range-control"><input id="cornerWidth" type="range" min="160" max="420" step="4" value="232"><output id="cornerWidthValue" for="cornerWidth">232px</output></div></div>
+      <div class="field range-field"><label for="cornerHeight">Corner height</label><div class="range-control"><input id="cornerHeight" type="range" min="120" max="320" step="4" value="232"><output id="cornerHeightValue" for="cornerHeight">232px</output></div></div>
       <button id="reset" class="button ghost" type="button">Reset</button>
       <button id="download" class="button primary" type="button">↓&nbsp; Download as image</button>
     </section>
@@ -111,22 +112,24 @@
       var matrixName = document.getElementById('matrixName');
       var columns = document.getElementById('columns');
       var rows = document.getElementById('rows');
-      var cornerSize = document.getElementById('cornerSize');
-      var cornerSizeValue = document.getElementById('cornerSizeValue');
+      var cornerWidth = document.getElementById('cornerWidth');
+      var cornerWidthValue = document.getElementById('cornerWidthValue');
+      var cornerHeight = document.getElementById('cornerHeight');
+      var cornerHeightValue = document.getElementById('cornerHeightValue');
       var matrix = document.getElementById('matrix');
       var workspaceTitle = document.getElementById('workspaceTitle');
       var saveState = document.getElementById('saveState');
       var state = loadState();
 
       function defaultState(rowCount, columnCount) {
-        return { name: '', cornerSize: 232, rows: rowCount || 2, cols: columnCount || 2, topLabel: 'Top label', leftLabel: 'Side label', topVisible: true, leftVisible: true, rowLabels: ['Agree', 'Disagree'], colLabels: ['Agrees', 'Disagrees'], cells: [] };
+        return { name: '', cornerWidth: 232, cornerHeight: 232, rows: rowCount || 2, cols: columnCount || 2, topLabel: 'Top label', leftLabel: 'Side label', topVisible: true, leftVisible: true, rowLabels: ['Agree', 'Disagree'], colLabels: ['Agrees', 'Disagrees'], cells: [] };
       }
 
       function loadState() {
         try {
           var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-          if (saved && saved.size) return { name: '', cornerSize: 232, rows: saved.size, cols: saved.size, topLabel: 'Top label', leftLabel: 'Side label', topVisible: true, leftVisible: true, rowLabels: saved.rowLabels || [], colLabels: saved.colLabels || [], cells: saved.cells || [] };
-          if (saved && saved.rows && saved.cols) { saved.name = saved.name || ''; saved.cornerSize = Number(saved.cornerSize) || 232; saved.topVisible = saved.topVisible !== false; saved.leftVisible = saved.leftVisible !== false; return saved; }
+          if (saved && saved.size) return { name: '', cornerWidth: 232, cornerHeight: 232, rows: saved.size, cols: saved.size, topLabel: 'Top label', leftLabel: 'Side label', topVisible: true, leftVisible: true, rowLabels: saved.rowLabels || [], colLabels: saved.colLabels || [], cells: saved.cells || [] };
+          if (saved && saved.rows && saved.cols) { saved.name = saved.name || ''; saved.cornerWidth = Number(saved.cornerWidth) || Number(saved.cornerSize) || 232; saved.cornerHeight = Number(saved.cornerHeight) || Number(saved.cornerSize) || 232; saved.topVisible = saved.topVisible !== false; saved.leftVisible = saved.leftVisible !== false; return saved; }
           return defaultState(2, 2);
         } catch (error) { return defaultState(2, 2); }
       }
@@ -146,10 +149,11 @@
       }
 
       function getLayout() {
-        var size = Number(state.cornerSize) || 232;
-        var sideWidth = Math.round(size / 2);
-        var topHeight = Math.round(size / 2);
-        return { sideWidth: sideWidth, labelWidth: size - sideWidth, topHeight: topHeight, headerHeight: size - topHeight, cellWidth: 160, cellHeight: 92 };
+        var width = Number(state.cornerWidth) || 232;
+        var height = Number(state.cornerHeight) || 232;
+        var sideWidth = Math.round(width / 2);
+        var topHeight = Math.round(height / 2);
+        return { sideWidth: sideWidth, labelWidth: width - sideWidth, topHeight: topHeight, headerHeight: height - topHeight, cellWidth: 160, cellHeight: 92 };
       }
 
       function editable(text, type, index) {
@@ -182,7 +186,7 @@
       function render() {
         ensureState();
         var layout = getLayout();
-        matrixName.value = state.name; columns.value = state.cols; rows.value = state.rows; cornerSize.value = state.cornerSize; cornerSizeValue.value = state.cornerSize + 'px'; workspaceTitle.textContent = state.name || 'Untitled matrix';
+        matrixName.value = state.name; columns.value = state.cols; rows.value = state.rows; cornerWidth.value = state.cornerWidth; cornerWidthValue.value = state.cornerWidth + 'px'; cornerHeight.value = state.cornerHeight; cornerHeightValue.value = state.cornerHeight + 'px'; workspaceTitle.textContent = state.name || 'Untitled matrix';
         matrix.innerHTML = ''; matrix.style.gridTemplateColumns = layout.sideWidth + 'px ' + layout.labelWidth + 'px repeat(' + state.cols + ', ' + layout.cellWidth + 'px)'; matrix.style.gridTemplateRows = layout.topHeight + 'px ' + layout.headerHeight + 'px repeat(' + state.rows + ', ' + layout.cellHeight + 'px)';
         var corner = document.createElement('div'); corner.className = 'matrix-box corner-box'; corner.style.gridColumn = '1 / span 2'; corner.style.gridRow = '1 / span 2'; matrix.appendChild(corner);
         var topGroup = document.createElement('div'); topGroup.className = 'matrix-box group-box'; topGroup.style.gridColumn = '3 / span ' + state.cols; topGroup.style.gridRow = '1'; addGroupContent(topGroup, 'top', state.topLabel); matrix.appendChild(topGroup);
@@ -194,7 +198,8 @@
       matrixName.addEventListener('input', function () { state.name = matrixName.value.trim(); workspaceTitle.textContent = state.name || 'Untitled matrix'; save(); });
       columns.addEventListener('change', function () { state.cols = Number(columns.value); render(); save(); });
       rows.addEventListener('change', function () { state.rows = Number(rows.value); render(); save(); });
-      cornerSize.addEventListener('input', function () { state.cornerSize = Number(cornerSize.value); cornerSizeValue.value = state.cornerSize + 'px'; render(); save(); });
+      cornerWidth.addEventListener('input', function () { state.cornerWidth = Number(cornerWidth.value); cornerWidthValue.value = state.cornerWidth + 'px'; render(); save(); });
+      cornerHeight.addEventListener('input', function () { state.cornerHeight = Number(cornerHeight.value); cornerHeightValue.value = state.cornerHeight + 'px'; render(); save(); });
       document.getElementById('reset').addEventListener('click', function () { if (window.confirm('Reset this matrix and clear all saved work?')) { state = defaultState(2, 2); render(); save(); } });
       document.addEventListener('click', function (event) { if (!event.target.closest('.cell-box')) { document.querySelectorAll('.cell-box.selected').forEach(function (cell) { cell.classList.remove('selected'); }); document.querySelectorAll('.color-menu').forEach(function (menu) { menu.hidden = true; }); } });
       window.addEventListener('keydown', function (event) {
@@ -217,8 +222,7 @@
         state.colLabels.forEach(function (label, col) { roundedRect(sideWidth + labelWidth + col * cellWidth, titleHeight + topHeight, cellWidth, headerHeight, 8, '#edf4ef'); drawText(label, sideWidth + labelWidth + col * cellWidth, titleHeight + topHeight, cellWidth, headerHeight, '#17211b', '700'); });
         if (state.leftVisible) { roundedRect(0, titleHeight + topHeight + headerHeight, sideWidth, state.rows * cellHeight, 8, '#edf4ef'); drawText(state.leftLabel, 0, titleHeight + topHeight + headerHeight, sideWidth, state.rows * cellHeight, '#17211b', '700'); }
         state.rowLabels.forEach(function (label, row) { var y = titleHeight + topHeight + headerHeight + row * cellHeight; roundedRect(sideWidth, y, labelWidth, cellHeight, 8, '#edf4ef'); drawText(label, sideWidth, y, labelWidth, cellHeight, '#17211b', '700'); for (var col = 0; col < state.cols; col += 1) { var cell = state.cells[row * state.cols + col], x = sideWidth + labelWidth + col * cellWidth; roundedRect(x, y, cellWidth, cellHeight, 8, cell.color || '#f4f7f4'); drawText(cell.text, x, y, cellWidth, cellHeight, '#17211b', '600'); } });
-        function downloadImage(url) { var link = document.createElement('a'); link.download = (state.name || 'matrix-workshop') + '.png'; link.href = url; link.click(); }
-        if (canvas.toBlob) { canvas.toBlob(function (blob) { downloadImage(URL.createObjectURL(blob)); }, 'image/png'); } else { downloadImage(canvas.toDataURL('image/png')); }
+        var link = document.createElement('a'); link.download = (state.name || 'matrix-workshop') + '.png'; link.href = canvas.toDataURL('image/png'); link.style.display = 'none'; document.body.appendChild(link); link.click(); link.remove();
       });
 
       render();
