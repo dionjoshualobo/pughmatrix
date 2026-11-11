@@ -19,8 +19,20 @@
       background: var(--paper);
     }
 
+    [data-theme="dark"] {
+      --ink: #edf5ef;
+      --muted: #9eaea4;
+      --line: #33463b;
+      --paper: #101612;
+      --panel: #18221b;
+      --accent: #73cda5;
+      --accent-soft: #203d2d;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+    }
+
     * { box-sizing: border-box; }
     body { margin: 0; min-width: 320px; background: radial-gradient(circle at 8% 0%, #edf5ef 0, transparent 33rem), var(--paper); }
+    [data-theme="dark"] body { background: radial-gradient(circle at 8% 0%, #1d3124 0, transparent 33rem), var(--paper); }
     button, select, input { font: inherit; }
     button { cursor: pointer; }
     .app-shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 38px 0 56px; }
@@ -43,6 +55,7 @@
     .button.primary:hover { background: #1d5943; color: white; }
     .button.ghost { margin-left: auto; }
     .toolbar-actions { display: flex; flex: 0 0 auto; gap: 12px; margin-left: auto; }
+    .theme-toggle { min-width: 108px; }
     .workspace { margin-top: 20px; padding: clamp(16px, 3vw, 32px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
     .workspace-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
     .workspace-title { margin: 0; font-size: 1rem; letter-spacing: -.01em; }
@@ -71,6 +84,15 @@
     .swatch.clear { background: #f4f7f4; }
     .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     .hint { margin: 16px 0 0; color: var(--muted); font-size: .78rem; }
+    [data-theme="dark"] .toolbar { background: rgba(24, 34, 27, .88); }
+    [data-theme="dark"] select, [data-theme="dark"] .text-input, [data-theme="dark"] .number-input, [data-theme="dark"] .button { background: #202c24; color: var(--ink); }
+    [data-theme="dark"] .button.primary { background: #286b52; color: #fff; }
+    [data-theme="dark"] .button.primary:hover { background: #347d61; }
+    [data-theme="dark"] .matrix-box { background: #202c24; border-color: rgba(183, 210, 192, .16); }
+    [data-theme="dark"] .axis-box, [data-theme="dark"] .group-box { background: #293a30; }
+    [data-theme="dark"] .corner-box { background: #0a110d; color: #fff; }
+    [data-theme="dark"] .group-add, [data-theme="dark"] .color-menu { background: #202c24; }
+    [data-theme="dark"] .swatch.clear { background: #202c24; }
     @media (max-width: 700px) {
       .app-shell { width: min(100% - 20px, 1180px); padding-top: 24px; }
       .masthead { display: block; }
@@ -95,7 +117,7 @@
       <div class="field"><label for="rows">Rows</label><select id="rows"><option value="1">1 row</option><option value="2" selected>2 rows</option><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option><option value="6">6 rows</option><option value="7">7 rows</option><option value="8">8 rows</option></select></div>
       <div class="field range-field"><label for="cornerWidth">Corner width</label><div class="range-control"><input id="cornerWidth" type="range" min="160" max="420" step="4" value="232"><output id="cornerWidthValue" for="cornerWidth">232px</output></div></div>
       <div class="field range-field"><label for="cornerHeight">Corner height</label><div class="range-control"><input id="cornerHeight" type="range" min="120" max="320" step="4" value="232"><output id="cornerHeightValue" for="cornerHeight">232px</output></div></div>
-      <div class="toolbar-actions"><button id="reset" class="button ghost" type="button">Reset</button><button id="download" class="button primary" type="button">↓&nbsp; Download as image</button></div>
+      <div class="toolbar-actions"><button id="themeToggle" class="button theme-toggle" type="button" aria-pressed="false">☾&nbsp; Dark mode</button><button id="reset" class="button ghost" type="button">Reset</button><button id="download" class="button primary" type="button">↓&nbsp; Download as image</button></div>
     </section>
 
     <section class="workspace">
@@ -108,8 +130,10 @@
     (function () {
       'use strict';
       var STORAGE_KEY = 'matrix-workshop-state';
+      var THEME_KEY = 'matrix-workshop-theme';
       var colors = ['#00ef00', '#f9dfdc', '#fff000', '#00e5e5', '#dce8f4', '#ff7100', '#ed071b', '#f4f7f4'];
       var matrixName = document.getElementById('matrixName');
+      var themeToggle = document.getElementById('themeToggle');
       var columns = document.getElementById('columns');
       var rows = document.getElementById('rows');
       var cornerWidth = document.getElementById('cornerWidth');
@@ -146,6 +170,13 @@
       function save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         saveState.textContent = 'Saved locally · ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      }
+
+      function applyTheme(theme) {
+        var dark = theme === 'dark';
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        themeToggle.textContent = dark ? '☀  Light mode' : '☾  Dark mode';
+        themeToggle.setAttribute('aria-pressed', String(dark));
       }
 
       function getLayout() {
@@ -195,6 +226,7 @@
         state.rowLabels.forEach(function (label, row) { var axis = document.createElement('div'); axis.className = 'matrix-box axis-box'; axis.style.gridColumn = '2'; axis.style.gridRow = String(row + 3); axis.appendChild(editable(label, 'row', row)); matrix.appendChild(axis); for (var col = 0; col < state.cols; col += 1) { var index = row * state.cols + col; var cell = document.createElement('div'); cell.className = 'matrix-box cell-box'; cell.style.gridColumn = String(col + 3); cell.style.gridRow = String(row + 3); cell.style.backgroundColor = state.cells[index].color || '#f4f7f4'; var editor = editable(state.cells[index].text, 'cell', index); cell.appendChild(editor); cell.addEventListener('click', function (event) { var selected = event.currentTarget; document.querySelectorAll('.cell-box.selected').forEach(function (other) { if (other !== selected) other.classList.remove('selected'); }); selected.classList.add('selected'); if (!event.target.closest('.color-button, .color-menu')) selected.querySelector('.editable').focus(); }); var colorButton = document.createElement('button'); colorButton.type = 'button'; colorButton.className = 'color-button'; colorButton.style.backgroundColor = state.cells[index].color || '#b7c8bd'; colorButton.setAttribute('aria-label', 'Choose cell color'); var menu = createColorMenu(cell, index); colorButton.addEventListener('click', function (event) { event.stopPropagation(); var currentMenu = event.currentTarget.parentNode.querySelector('.color-menu'); document.querySelectorAll('.color-menu').forEach(function (other) { if (other !== currentMenu) other.hidden = true; }); currentMenu.hidden = !currentMenu.hidden; }); cell.appendChild(colorButton); cell.appendChild(menu); matrix.appendChild(cell); } });
       }
 
+      themeToggle.addEventListener('click', function () { var dark = document.documentElement.dataset.theme !== 'dark'; applyTheme(dark ? 'dark' : 'light'); localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); });
       matrixName.addEventListener('input', function () { state.name = matrixName.value.trim(); workspaceTitle.textContent = state.name || 'Untitled matrix'; save(); });
       columns.addEventListener('change', function () { state.cols = Number(columns.value); render(); save(); });
       rows.addEventListener('change', function () { state.rows = Number(rows.value); render(); save(); });
@@ -226,6 +258,7 @@
         var blob = new Blob([svg.join('')], { type: 'image/svg+xml;charset=utf-8' }), link = document.createElement('a'); link.download = (state.name || 'matrix-workshop') + '.svg'; link.href = URL.createObjectURL(blob); link.style.display = 'none'; document.body.appendChild(link); link.click(); link.remove(); window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
       });
 
+      applyTheme(localStorage.getItem(THEME_KEY) || 'light');
       render();
     }());
   </script>
