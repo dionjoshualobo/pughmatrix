@@ -51,10 +51,11 @@
     .matrix-box:hover { z-index: 2; transform: translateY(-2px); box-shadow: 0 7px 18px rgba(26, 56, 38, .11); }
     .axis-box { min-height: 61px; align-items: center; justify-content: center; background: #edf4ef; }
     .corner-box { background: var(--ink); color: white; }
-    .cell-box { align-items: flex-start; }
+    .group-box { min-height: 61px; align-items: center; justify-content: center; background: #edf4ef; }
+    .cell-box { align-items: stretch; }
     .editable { width: 100%; min-height: 24px; outline: none; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
     .axis-box .editable { text-align: center; font-weight: 800; }
-    .cell-box .editable { font-size: .91rem; font-weight: 650; }
+    .cell-box .editable { display: flex; align-items: center; min-height: 100%; padding-bottom: 12px; font-size: .91rem; font-weight: 650; cursor: text; }
     .color-button { position: absolute; right: 7px; bottom: 7px; width: 20px; height: 20px; padding: 0; border: 2px solid rgba(255,255,255,.92); border-radius: 50%; background: #b7c8bd; box-shadow: 0 1px 5px rgba(0,0,0,.18); }
     .color-menu { position: absolute; z-index: 5; right: 4px; bottom: 31px; display: flex; gap: 5px; padding: 7px; background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(23, 45, 31, .18); }
     .swatch { width: 20px; height: 20px; padding: 0; border: 1px solid rgba(0,0,0,.12); border-radius: 50%; }
@@ -80,8 +81,8 @@
     </header>
 
     <section class="toolbar" aria-label="Matrix setup">
-      <div class="field"><label for="dimension">Matrix size</label><select id="dimension"><option value="2">2 × 2</option><option value="3">3 × 3</option><option value="4">4 × 4</option><option value="5">5 × 5</option></select></div>
-      <div class="field"><label for="sublabels">Sub-labels per axis</label><div class="sublabel-control"><input id="sublabels" type="checkbox"><span>Show</span><input id="sublabelCount" class="number-input sublabel-count" type="number" min="1" max="3" value="1" aria-label="Sublabels per axis" disabled></div></div>
+      <div class="field"><label for="columns">Top sublabels</label><select id="columns"><option value="1">1 column</option><option value="2" selected>2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option><option value="7">7 columns</option><option value="8">8 columns</option></select></div>
+      <div class="field"><label for="rows">Left sublabels</label><select id="rows"><option value="1">1 row</option><option value="2" selected>2 rows</option><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option><option value="6">6 rows</option><option value="7">7 rows</option><option value="8">8 rows</option></select></div>
       <button id="reset" class="button ghost" type="button">Reset</button>
       <button id="download" class="button primary" type="button">↓&nbsp; Download as image</button>
     </section>
@@ -89,40 +90,39 @@
     <section class="workspace">
       <div class="workspace-head"><h2 class="workspace-title">Untitled matrix</h2><span id="saveState" class="save-state" aria-live="polite">Saved locally</span></div>
       <div class="matrix-wrap"><div id="matrix" class="matrix" aria-label="Editable matrix"></div></div>
-      <p class="hint">Click any label or cell to edit. Use the dot in a cell to choose a color.</p>
+      <p class="hint">Click anywhere in a label or cell to edit. Use the dot in a cell to choose a color.</p>
     </section>
   </main>
   <script>
     (function () {
       'use strict';
       var STORAGE_KEY = 'matrix-workshop-state';
-      var colors = ['#d9eee2', '#f9dfdc', '#fff0bd', '#dce8f4', '#eadcf0', '#f4f7f4'];
-      var dimension = document.getElementById('dimension');
-      var sublabels = document.getElementById('sublabels');
-      var sublabelCount = document.getElementById('sublabelCount');
+      var colors = ['#00ef00', '#f9dfdc', '#fff000', '#00e5e5', '#dce8f4', '#ff7100', '#ed071b', '#f4f7f4'];
+      var columns = document.getElementById('columns');
+      var rows = document.getElementById('rows');
       var matrix = document.getElementById('matrix');
       var saveState = document.getElementById('saveState');
       var state = loadState();
 
-      function defaultState(size) {
-        return { size: size || 2, sublabels: false, sublabelCount: 1, rowLabels: ['Option A', 'Option B'], colLabels: ['Criterion 1', 'Criterion 2'], cells: [] };
+      function defaultState(rowCount, columnCount) {
+        return { rows: rowCount || 2, cols: columnCount || 2, topLabel: 'Top label', leftLabel: 'Side label', rowLabels: ['Agree', 'Disagree'], colLabels: ['Agrees', 'Disagrees'], cells: [] };
       }
 
       function loadState() {
         try {
           var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-          return saved && saved.size ? saved : defaultState(2);
-        } catch (error) { return defaultState(2); }
+          if (saved && saved.size) return { rows: saved.size, cols: saved.size, topLabel: 'Top label', leftLabel: 'Side label', rowLabels: saved.rowLabels || [], colLabels: saved.colLabels || [], cells: saved.cells || [] };
+          return saved && saved.rows && saved.cols ? saved : defaultState(2, 2);
+        } catch (error) { return defaultState(2, 2); }
       }
 
       function ensureState() {
-        var size = state.size;
-        while (state.rowLabels.length < size) state.rowLabels.push('Row ' + (state.rowLabels.length + 1));
-        while (state.colLabels.length < size) state.colLabels.push('Column ' + (state.colLabels.length + 1));
-        state.rowLabels.length = size;
-        state.colLabels.length = size;
-        while (state.cells.length < size * size) state.cells.push({ text: '', color: '' });
-        state.cells.length = size * size;
+        while (state.rowLabels.length < state.rows) state.rowLabels.push('Row ' + (state.rowLabels.length + 1));
+        while (state.colLabels.length < state.cols) state.colLabels.push('Column ' + (state.colLabels.length + 1));
+        state.rowLabels.length = state.rows;
+        state.colLabels.length = state.cols;
+        while (state.cells.length < state.rows * state.cols) state.cells.push({ text: '', color: '' });
+        state.cells.length = state.rows * state.cols;
       }
 
       function save() {
@@ -133,15 +133,8 @@
       function editable(text, type, index) {
         var element = document.createElement('div');
         element.className = 'editable'; element.contentEditable = 'true'; element.spellcheck = false; element.textContent = text;
-        element.addEventListener('input', function () { if (type === 'row') state.rowLabels[index] = element.textContent; else if (type === 'col') state.colLabels[index] = element.textContent; else state.cells[index].text = element.textContent; save(); });
+        element.addEventListener('input', function () { if (type === 'row') state.rowLabels[index] = element.textContent; else if (type === 'col') state.colLabels[index] = element.textContent; else if (type === 'top') state.topLabel = element.textContent; else if (type === 'left') state.leftLabel = element.textContent; else state.cells[index].text = element.textContent; save(); });
         return element;
-      }
-
-      function axisText(label) {
-        if (!state.sublabels) return label;
-        var lines = [label];
-        for (var index = 1; index <= state.sublabelCount; index += 1) lines.push('Sub-label ' + index);
-        return lines.join('\n');
       }
 
       function createColorMenu(cell, index) {
@@ -152,22 +145,25 @@
 
       function render() {
         ensureState();
-        dimension.value = state.size; sublabels.checked = state.sublabels; sublabelCount.value = state.sublabelCount; sublabelCount.disabled = !state.sublabels;
-        matrix.innerHTML = ''; matrix.style.gridTemplateColumns = 'minmax(116px, .75fr) repeat(' + state.size + ', minmax(112px, 1fr))';
-        var corner = document.createElement('div'); corner.className = 'matrix-box axis-box corner-box'; corner.appendChild(editable('Axis', 'corner', 0)); matrix.appendChild(corner);
-        state.colLabels.forEach(function (label, index) { var box = document.createElement('div'); box.className = 'matrix-box axis-box'; box.appendChild(editable(axisText(label), 'col', index)); matrix.appendChild(box); });
-        state.rowLabels.forEach(function (label, row) { var axis = document.createElement('div'); axis.className = 'matrix-box axis-box'; axis.appendChild(editable(axisText(label), 'row', row)); matrix.appendChild(axis); for (var col = 0; col < state.size; col += 1) { var index = row * state.size + col; var cell = document.createElement('div'); cell.className = 'matrix-box cell-box'; cell.style.backgroundColor = state.cells[index].color || '#f4f7f4'; cell.appendChild(editable(state.cells[index].text, 'cell', index)); var colorButton = document.createElement('button'); colorButton.type = 'button'; colorButton.className = 'color-button'; colorButton.style.backgroundColor = state.cells[index].color || '#b7c8bd'; colorButton.setAttribute('aria-label', 'Choose cell color'); var menu = createColorMenu(cell, index); colorButton.addEventListener('click', function (event) { event.stopPropagation(); var currentMenu = event.currentTarget.parentNode.querySelector('.color-menu'); document.querySelectorAll('.color-menu').forEach(function (other) { if (other !== currentMenu) other.hidden = true; }); currentMenu.hidden = !currentMenu.hidden; }); cell.appendChild(colorButton); cell.appendChild(menu); matrix.appendChild(cell); } });
+        columns.value = state.cols; rows.value = state.rows;
+        matrix.innerHTML = ''; matrix.style.gridTemplateColumns = 'minmax(116px, .6fr) minmax(116px, .75fr) repeat(' + state.cols + ', minmax(112px, 1fr))'; matrix.style.gridTemplateRows = '61px 61px repeat(' + state.rows + ', minmax(92px, auto))';
+        var corner = document.createElement('div'); corner.className = 'matrix-box corner-box'; corner.style.gridColumn = '1 / span 2'; corner.style.gridRow = '1 / span 2'; matrix.appendChild(corner);
+        var topGroup = document.createElement('div'); topGroup.className = 'matrix-box group-box'; topGroup.style.gridColumn = '3 / span ' + state.cols; topGroup.style.gridRow = '1'; topGroup.appendChild(editable(state.topLabel, 'top', 0)); matrix.appendChild(topGroup);
+        state.colLabels.forEach(function (label, index) { var box = document.createElement('div'); box.className = 'matrix-box axis-box'; box.style.gridColumn = String(index + 3); box.style.gridRow = '2'; box.appendChild(editable(label, 'col', index)); matrix.appendChild(box); });
+        var leftGroup = document.createElement('div'); leftGroup.className = 'matrix-box group-box'; leftGroup.style.gridColumn = '1'; leftGroup.style.gridRow = '3 / span ' + state.rows; leftGroup.appendChild(editable(state.leftLabel, 'left', 0)); matrix.appendChild(leftGroup);
+        state.rowLabels.forEach(function (label, row) { var axis = document.createElement('div'); axis.className = 'matrix-box axis-box'; axis.style.gridColumn = '2'; axis.style.gridRow = String(row + 3); axis.appendChild(editable(label, 'row', row)); matrix.appendChild(axis); for (var col = 0; col < state.cols; col += 1) { var index = row * state.cols + col; var cell = document.createElement('div'); cell.className = 'matrix-box cell-box'; cell.style.gridColumn = String(col + 3); cell.style.gridRow = String(row + 3); cell.style.backgroundColor = state.cells[index].color || '#f4f7f4'; var editor = editable(state.cells[index].text, 'cell', index); cell.appendChild(editor); cell.addEventListener('click', function (event) { if (!event.target.closest('.color-button, .color-menu')) { event.currentTarget.querySelector('.editable').focus(); } }); var colorButton = document.createElement('button'); colorButton.type = 'button'; colorButton.className = 'color-button'; colorButton.style.backgroundColor = state.cells[index].color || '#b7c8bd'; colorButton.setAttribute('aria-label', 'Choose cell color'); var menu = createColorMenu(cell, index); colorButton.addEventListener('click', function (event) { event.stopPropagation(); var currentMenu = event.currentTarget.parentNode.querySelector('.color-menu'); document.querySelectorAll('.color-menu').forEach(function (other) { if (other !== currentMenu) other.hidden = true; }); currentMenu.hidden = !currentMenu.hidden; }); cell.appendChild(colorButton); cell.appendChild(menu); matrix.appendChild(cell); } });
       }
 
-      dimension.addEventListener('change', function () { state.size = Number(dimension.value); render(); save(); });
-      sublabels.addEventListener('change', function () { state.sublabels = sublabels.checked; sublabelCount.disabled = !state.sublabels; save(); });
-      sublabelCount.addEventListener('change', function () { state.sublabelCount = Math.max(1, Math.min(3, Number(sublabelCount.value) || 1)); sublabelCount.value = state.sublabelCount; save(); });
-      document.getElementById('reset').addEventListener('click', function () { if (window.confirm('Reset this matrix and clear all saved work?')) { state = defaultState(2); render(); save(); } });
+      columns.addEventListener('change', function () { state.cols = Number(columns.value); render(); save(); });
+      rows.addEventListener('change', function () { state.rows = Number(rows.value); render(); save(); });
+      document.getElementById('reset').addEventListener('click', function () { if (window.confirm('Reset this matrix and clear all saved work?')) { state = defaultState(2, 2); render(); save(); } });
       document.addEventListener('click', function (event) { if (!event.target.closest('.color-menu, .color-button')) document.querySelectorAll('.color-menu').forEach(function (menu) { menu.hidden = true; }); });
 
       document.getElementById('download').addEventListener('click', function () {
         var scale = 2, rect = matrix.getBoundingClientRect(), width = Math.ceil(rect.width), height = Math.ceil(rect.height), canvas = document.createElement('canvas'); canvas.width = width * scale; canvas.height = height * scale; var context = canvas.getContext('2d'); context.scale(scale, scale); context.fillStyle = '#ffffff'; context.fillRect(0, 0, width, height);
-        var boxes = matrix.querySelectorAll('.matrix-box'); boxes.forEach(function (box) { var boxRect = box.getBoundingClientRect(), x = boxRect.left - rect.left, y = boxRect.top - rect.top; context.fillStyle = getComputedStyle(box).backgroundColor; context.beginPath(); context.roundRect(x, y, boxRect.width, boxRect.height, 8); context.fill(); context.strokeStyle = 'rgba(31, 51, 40, .12)'; context.stroke(); context.fillStyle = getComputedStyle(box).color; context.font = (box.classList.contains('axis-box') ? '700 14px' : '600 13px') + ' Avenir Next, sans-serif'; context.textAlign = box.classList.contains('axis-box') ? 'center' : 'left'; var text = box.querySelector('.editable').textContent; var textX = box.classList.contains('axis-box') ? x + boxRect.width / 2 : x + 12; var textY = y + boxRect.height / 2 + 5; context.fillText(text, textX, textY); });
+        function roundedRect(x, y, boxWidth, boxHeight, radius) { context.beginPath(); context.moveTo(x + radius, y); context.lineTo(x + boxWidth - radius, y); context.quadraticCurveTo(x + boxWidth, y, x + boxWidth, y + radius); context.lineTo(x + boxWidth, y + boxHeight - radius); context.quadraticCurveTo(x + boxWidth, y + boxHeight, x + boxWidth - radius, y + boxHeight); context.lineTo(x + radius, y + boxHeight); context.quadraticCurveTo(x, y + boxHeight, x, y + boxHeight - radius); context.lineTo(x, y + radius); context.quadraticCurveTo(x, y, x + radius, y); context.closePath(); }
+        function drawText(text, x, y, boxWidth, boxHeight, centered) { var lines = text.split('\n'), lineHeight = 17, startY = y + (boxHeight - lines.length * lineHeight) / 2 + 13; context.textAlign = centered ? 'center' : 'left'; lines.forEach(function (line, lineIndex) { context.fillText(line, centered ? x + boxWidth / 2 : x + 12, startY + lineIndex * lineHeight); }); }
+        var boxes = matrix.querySelectorAll('.matrix-box'); boxes.forEach(function (box) { var boxRect = box.getBoundingClientRect(), x = boxRect.left - rect.left, y = boxRect.top - rect.top, style = getComputedStyle(box); roundedRect(x, y, boxRect.width, boxRect.height, 8); context.fillStyle = style.backgroundColor; context.fill(); context.strokeStyle = 'rgba(31, 51, 40, .12)'; context.stroke(); var textElement = box.querySelector('.editable'); if (textElement && textElement.textContent) { context.fillStyle = style.color; context.font = (box.classList.contains('axis-box') || box.classList.contains('group-box') ? '700 14px' : '600 13px') + ' Avenir Next, sans-serif'; drawText(textElement.textContent, x, y, boxRect.width, boxRect.height, true); } });
         var link = document.createElement('a'); link.download = 'matrix-workshop.png'; link.href = canvas.toDataURL('image/png'); link.click();
       });
 
